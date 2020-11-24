@@ -309,7 +309,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
     //Opening THIS Syntax
     case MKC_PRTMAP:
     {
-      //Opening Google-Doc of Keymapping
+      //Opening Git-Hub-Code of Keymapping
       if (record->event.pressed)
       {
         //Pushing: Win-Run
@@ -529,7 +529,7 @@ void post_process_record_user(uint16_t keycode, keyrecord_t *record)
     {
       if (!record->event.pressed)
       {
-        SEND_STRING("https://drive.google.com/file/d/10JJhgrfwqreYuY47s2XRKfaT_RAeHEV6/view?usp=sharing\n");
+        SEND_STRING("https://bit.ly/35WFklO\n");
         break;
       }
     }
