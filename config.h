@@ -69,4 +69,4 @@
 //#define UNICODE_SELECTED_MODES UC_WINC
 
 /* Defining TT Count until Toggle */
-//#define TAPPING_TOGGLE 2
+#define TAPPING_TOGGLE 3
