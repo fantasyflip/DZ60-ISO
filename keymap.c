@@ -269,7 +269,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
       if (record->event.pressed)
       {
         //Pushing Unmapped Button
-        
+
         //Saving Values
         Mode = rgblight_get_mode();
         hue = rgblight_get_hue();
@@ -318,7 +318,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
       return true;
       break;
     }
-    
+
     //Opening Spotify
     case MKC_SPTFY:
     {
@@ -332,7 +332,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
       break;
     }
 
-    //Setting RGB LEDs to Rainbow Cycle 
+    //Setting RGB LEDs to Rainbow Cycle
     case MKC_RBW:
     {
       if (record->event.pressed)
@@ -363,7 +363,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
       return false;
     }
 
-    //Setting RGB LEDs to Rainbow Cycle 
+    //Setting RGB LEDs to Rainbow Cycle
     case MKC_TWNK:
     {
       if (record->event.pressed)
@@ -385,7 +385,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
       }
       return true;
     }
-    
+
     //Create New Desktop
     case MKC_NWD:
     {
@@ -464,6 +464,10 @@ void post_process_record_user(uint16_t keycode, keyrecord_t *record)
          break;
         }
         case KC_SPC:
+        {
+          //Remove break if "0x" in front of every word is wanted!
+          break;
+        }
         case KC_ENT:
         {
           t_hextext.first = true;
@@ -513,7 +517,7 @@ void post_process_record_user(uint16_t keycode, keyrecord_t *record)
         }
       }
     }
-    
+
   }
   */
 
@@ -571,8 +575,8 @@ const rgblight_segment_t PROGMEM UG_MACROL[] = RGBLIGHT_LAYER_SEGMENTS(
 const rgblight_segment_t* const PROGMEM UG_Layers[] = RGBLIGHT_LAYERS_LIST(
     //Overwriting layers from Bottom to Top
     UG_FNL,
-    UG_MACROL, 
-    UG_ADJL,     
+    UG_MACROL,
+    UG_ADJL,
     UG_CAPSL
 );
 
