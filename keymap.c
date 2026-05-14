@@ -99,22 +99,6 @@ char *Hex2Bin (char *p_hex)
   return p_bin;
 };
 
-//Function to Convert Int to Char Array
-char *Int2CharArray(int number)
-{
-  int n = log10(number) + 1;
-  int i;
-
-  char *intArray = calloc(n, sizeof(char));
-
-  for (i = 0; i < n; ++i, number /= 10)
-  {
-    intArray[i] = number % 10;
-  }
-
-  return intArray;
-}
-
 //Function for printing the Binary Value
 void prBin (char c)
 {
@@ -627,7 +611,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
   //LAYER 2
   [_ML] = LAYOUT_60_iso(
-    MKC_EMY,  KC_VOLD,  KC_MPRV,   KC_MPLY,   KC_MNXT,   KC_VOLU,   KC_MUTE,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  RGB_TOG,   MKC_EMY,
+    MKC_EMY,  KC_BRID,  KC_BRIU,   KC_MCTL,   KC_LPAD,   MKC_EMY,   MKC_EMY,  KC_MPRV,  KC_MPLY,  KC_MNXT,  KC_MUTE,  KC_VOLD,  KC_VOLU,   MKC_EMY,
     MKC_EMY,  MKC_EMY,  MKC_EMY,   MKC_EMY,   MKC_EMY,   MKC_EMY,   MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_NWD,  MKC_EMY,
     MKC_EMY,  MKC_EMY,  MKC_SPTFY,   MKC_EMY,   MKC_EMY,   MKC_EMY,   MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_LSD,  MKC_CLD,  MKC_NXD,   MKC_EMY,
     MKC_TNTTXT,  MKC_EMY,  MKC_EMY,   MKC_HEXTXT,   MKC_EMY,   MKC_EMY,   MKC_BINTXT,  MKC_EMY,  MKC_PRTMAP,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,
@@ -637,9 +621,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //LAYER 3
   [_AL] = LAYOUT_60_iso(
     MKC_EMY,  MKC_EMY,  MKC_EMY,   MKC_EMY,   MKC_EMY,   MKC_EMY,   MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,   MKC_EMY,
-    MKC_EMY,  RGB_TOG,  RGB_MOD,   RGB_HUI,   RGB_HUD,   RGB_SAI,   RGB_SAD,  RGB_VAI,  RGB_VAD,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,
-    MKC_EMY,  BL_TOGG,  BL_STEP,   BL_INC,   BL_DEC,   MKC_EMY,   MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,   MKC_EMY,
-    MKC_EMY,  MKC_RBW,  MKC_TWNK,   MKC_EMY,   MKC_EMY,   MKC_EMY,   RESET,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,
+    MKC_EMY,  UG_TOGG,  UG_NEXT,   UG_HUEU,   UG_HUED,   UG_SATU,   UG_SATD,  UG_VALU,  UG_VALD,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,
+    MKC_EMY,  BL_TOGG,  BL_STEP,   BL_UP,   BL_DOWN,   MKC_EMY,   MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,   MKC_EMY,
+    MKC_EMY,  MKC_RBW,  MKC_TWNK,   MKC_EMY,   MKC_EMY,   MKC_EMY,   QK_BOOT,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,
     MKC_EMY,  MKC_EMY,  MKC_EMY,                   MKC_EMY,                                     MKC_EMY,  MKC_EMY,  TT(3),   MKC_EMY
   ),
 };
