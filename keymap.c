@@ -163,6 +163,36 @@ static uint16_t left_gui_hold_keycode = KC_LGUI;
 static uint16_t left_alt_hold_keycode = KC_LALT;
 static uint16_t right_alt_hold_keycode = KC_RALT;
 
+#define BACKLIGHT_LOWEST_ON_LEVEL 1
+#define HOST_RGB_VALUE 192
+#define HSV_HOST_WINDOWS 12, 255, HOST_RGB_VALUE
+#define HSV_HOST_MAC 158, 220, HOST_RGB_VALUE
+
+
+static bool is_mac_mode(void);
+
+
+static void apply_backlight_floor(void)
+{
+  backlight_level_noeeprom(BACKLIGHT_LOWEST_ON_LEVEL);
+}
+
+
+static void apply_host_rgblight(void)
+{
+  rgblight_enable_noeeprom();
+  rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+
+  if (is_mac_mode())
+  {
+    rgblight_sethsv_noeeprom(HSV_HOST_MAC);
+  }
+  else
+  {
+    rgblight_sethsv_noeeprom(HSV_HOST_WINDOWS);
+  }
+}
+
 
 static bool is_mac_mode(void)
 {
@@ -462,6 +492,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
 bool process_detected_host_os_user(os_variant_t detected_os)
 {
   current_host_os = detected_os;
+  apply_host_rgblight();
   return true;
 }
 
@@ -619,6 +650,13 @@ const rgblight_segment_t* const PROGMEM UG_Layers[] = RGBLIGHT_LAYERS_LIST(
 void keyboard_post_init_user(void) {
     // Enable the LED layers
     rgblight_layers = UG_Layers;
+    apply_backlight_floor();
+    apply_host_rgblight();
+}
+
+void suspend_wakeup_init_user(void)
+{
+  apply_host_rgblight();
 }
 
 //Checking Layer State and Setting the Lighting Layer accordingly

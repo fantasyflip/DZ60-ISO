@@ -56,6 +56,8 @@ Notes:
 - Detection happens shortly after USB startup, not before the firmware boots.
 - Until the host is identified, the keyboard behaves like the Windows/Linux layout.
 - There is no manual toggle anymore; the swap is driven by the detected host OS.
+- The base underglow also follows the detected host OS: Windows/Linux use a dim orange preset, while macOS/iOS use a dim cool blue preset.
+- The switch backlight starts at the lowest illuminated level after boot, but remains adjustable from the `Adjust` layer.
 
 ## Fn Layer
 
