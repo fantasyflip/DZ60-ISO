@@ -160,11 +160,12 @@ enum custom_keycodes
 
 static os_variant_t current_host_os = OS_UNSURE;
 static uint16_t left_gui_hold_keycode = KC_LGUI;
-static uint16_t left_alt_hold_keycode = KC_LALT;
+static uint16_t left_alt_hold_keycode = KC_LALT; // Stores which keycode MKC_OS_ALT currently represents.
 static uint16_t right_alt_hold_keycode = KC_RALT;
-static bool left_alt_is_held = false;
-static bool left_alt_is_registered = false;
-static bool mission_control_chord_active = false;
+static bool left_alt_is_held = false; // Tracks physical hold state of MKC_OS_ALT.
+static bool left_alt_is_pending = false; // Delays Command registration on macOS until next non-chord key.
+static bool left_alt_is_registered = false; // Tracks whether left_alt_hold_keycode is currently registered.
+static bool mission_control_chord_active = false; // Tracks an active MKC_OS_ALT + DE_3 Mission Control chord.
 
 #define BACKLIGHT_LOWEST_ON_LEVEL 1
 #define HOST_RGB_VALUE 192
@@ -173,6 +174,26 @@ static bool mission_control_chord_active = false;
 
 
 static bool is_mac_mode(void);
+
+
+static void trigger_mission_control(void)
+{
+  uint8_t saved_mods = get_mods(); // Capture currently active real modifiers.
+  uint8_t saved_weak_mods = get_weak_mods(); // Capture QMK weak modifiers.
+  uint8_t saved_oneshot_mods = get_oneshot_mods(); // Capture one-shot modifiers.
+
+  clear_mods(); // Remove real modifiers so Mission Control is sent unmodified.
+  clear_weak_mods(); // Remove weak modifiers for the synthetic key tap.
+  clear_oneshot_mods(); // Remove one-shot modifiers for the synthetic key tap.
+  send_keyboard_report(); // Push cleared modifier state to the host before tap.
+
+  tap_code16(C(KC_UP)); // Emit the actual macOS Mission Control shortcut.
+
+  set_mods(saved_mods); // Restore previously held real modifiers.
+  set_weak_mods(saved_weak_mods); // Restore weak modifiers.
+  set_oneshot_mods(saved_oneshot_mods); // Restore one-shot modifiers.
+  send_keyboard_report(); // Push restored modifier state to the host.
+}
 
 
 static void apply_backlight_floor(void)
@@ -240,6 +261,19 @@ static struct
 //Processing Macros
 bool process_record_user(uint16_t keycode, keyrecord_t *record)
 {
+  // Resolve delayed MKC_OS_ALT registration on macOS as soon as the next keypress is known.
+  if (is_mac_mode() && left_alt_is_pending && record->event.pressed && keycode != MKC_OS_ALT)
+  {
+    // DE_3 is reserved as the Mission Control chord and must not turn into Command+3.
+    if (keycode != DE_3)
+    {
+      register_code16(left_alt_hold_keycode); // Register delayed modifier for normal combos.
+      left_alt_is_registered = true; // Record that the delayed modifier is now active.
+    }
+
+    left_alt_is_pending = false; // Consume pending state after the first post-press key.
+  }
+
   //Taunttext Bool
   static bool b_taunttext = false;
 
@@ -313,6 +347,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
   {
     case DE_3:
     {
+      // Only intercept DE_3 in macOS/iOS mode for the custom Mission Control chord.
       if (!is_mac_mode())
       {
         break;
@@ -320,29 +355,34 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
 
       if (record->event.pressed)
       {
+        // Chord triggers only while MKC_OS_ALT is physically held.
         if (left_alt_is_held)
         {
-          mission_control_chord_active = true;
+          mission_control_chord_active = true; // Mark chord active until DE_3 is released.
+
+          // If Command was registered already, temporarily release it before synthetic tap.
           if (left_alt_is_registered)
           {
-            unregister_code16(left_alt_hold_keycode);
-            left_alt_is_registered = false;
+            unregister_code16(left_alt_hold_keycode); // Prevent accidental Command-modified side effects.
+            left_alt_is_registered = false; // Track that Command is currently not active.
           }
-          tap_code16(KC_MCTL);
-          return false;
+
+          trigger_mission_control(); // Send clean Mission Control shortcut.
+          return false; // Suppress normal DE_3 handling for this press.
         }
       }
       else if (mission_control_chord_active)
       {
-        mission_control_chord_active = false;
+        mission_control_chord_active = false; // End chord on DE_3 release.
 
+        // Restore held MKC_OS_ALT modifier state after the chord completes.
         if (left_alt_is_held && !left_alt_is_registered)
         {
-          register_code16(left_alt_hold_keycode);
-          left_alt_is_registered = true;
+          register_code16(left_alt_hold_keycode); // Reapply modifier for continued holds.
+          left_alt_is_registered = true; // Mark modifier as active again.
         }
 
-        return false;
+        return false; // Suppress normal DE_3 release handling for the chord.
       }
 
       break;
@@ -357,23 +397,34 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
     {
       if (record->event.pressed)
       {
-        left_alt_is_held = true;
-        left_alt_hold_keycode = is_mac_mode() ? KC_LGUI : KC_LALT;
-        register_code16(left_alt_hold_keycode);
-        left_alt_is_registered = true;
+        left_alt_is_held = true; // Physical MKC_OS_ALT key is now held.
+        left_alt_hold_keycode = is_mac_mode() ? KC_LGUI : KC_LALT; // Map by host OS.
+
+        // On macOS/iOS, defer Command registration to reserve DE_3 for Mission Control.
+        if (is_mac_mode())
+        {
+          left_alt_is_pending = true; // Wait for next key before deciding to register.
+          left_alt_is_registered = false; // Ensure state reflects no active registration yet.
+        }
+        else
+        {
+          register_code16(left_alt_hold_keycode); // Non-macOS: register immediately as normal modifier.
+          left_alt_is_registered = true; // Track active registration.
+        }
       }
       else
       {
-        left_alt_is_held = false;
+        left_alt_is_held = false; // Physical MKC_OS_ALT key is no longer held.
+        left_alt_is_pending = false; // Clear delayed registration state on release.
 
         if (left_alt_is_registered)
         {
-          unregister_code16(left_alt_hold_keycode);
-          left_alt_is_registered = false;
+          unregister_code16(left_alt_hold_keycode); // Release any registered modifier.
+          left_alt_is_registered = false; // Track inactive registration.
         }
       }
 
-      return false;
+      return false; // Custom handler fully owns MKC_OS_ALT behavior.
     }
 
     case MKC_OS_RALT:
