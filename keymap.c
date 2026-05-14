@@ -99,22 +99,6 @@ char *Hex2Bin (char *p_hex)
   return p_bin;
 };
 
-//Function to Convert Int to Char Array
-char *Int2CharArray(int number)
-{
-  int n = log10(number) + 1;
-  int i;
-
-  char *intArray = calloc(n, sizeof(char));
-
-  for (i = 0; i < n; ++i, number /= 10)
-  {
-    intArray[i] = number % 10;
-  }
-
-  return intArray;
-}
-
 //Function for printing the Binary Value
 void prBin (char c)
 {
@@ -145,6 +129,9 @@ enum custom_keycodes
 {
   MKC_EMY = SAFE_RANGE,     // Keycode for unmapped Buttons
   MKC_HEXTXT,               // Keycode for writing in Hextext
+  MKC_OS_GUI,               // Left GUI position with OS-aware output
+  MKC_OS_ALT,               // Left Alt position with OS-aware output
+  MKC_OS_RALT,              // Right Alt position with OS-aware output
   MKC_PRTMAP,               // Opens this FW-Code
   MKC_SPTFY,                // Opens Spotify (REQUIRED: Spotify.lnk in Start-Menu)
   MKC_RBW,                  // Set RGB to Rainbow Cycle
@@ -158,6 +145,7 @@ enum custom_keycodes
   MKC_LSD,                  // Last Desktop
   /*
   MKC_TBLFLP,               // (╯°□°）╯︵ ┻━┻)  Emoji
+
   MKC_FU,                   // ┌П┐(◉_◉)┌П┐ Emoji
   MKC_IDC,                  // ¯\_(ツ)_/¯ Emoji
   MKC_TBLRST,               // ┬──┬◡ﾉ(° -°ﾉ)  Emoji
@@ -169,6 +157,63 @@ enum custom_keycodes
   #define UCKC_CLWN X(E_CLWN) //Defining Keycode for Clown Emoji
   */
 };
+
+static os_variant_t current_host_os = OS_UNSURE;
+static uint16_t left_gui_hold_keycode = KC_LGUI;
+static uint16_t left_alt_hold_keycode = KC_LALT;
+static uint16_t right_alt_hold_keycode = KC_RALT;
+
+#define BACKLIGHT_LOWEST_ON_LEVEL 1
+#define HOST_RGB_VALUE 192
+#define HSV_HOST_WINDOWS 12, 255, HOST_RGB_VALUE
+#define HSV_HOST_MAC 158, 220, HOST_RGB_VALUE
+
+
+static bool is_mac_mode(void);
+
+
+static void apply_backlight_floor(void)
+{
+  backlight_level_noeeprom(BACKLIGHT_LOWEST_ON_LEVEL);
+}
+
+
+static void apply_host_rgblight(void)
+{
+  rgblight_enable_noeeprom();
+  rgblight_mode_noeeprom(RGBLIGHT_MODE_STATIC_LIGHT);
+
+  if (is_mac_mode())
+  {
+    rgblight_sethsv_noeeprom(HSV_HOST_MAC);
+  }
+  else
+  {
+    rgblight_sethsv_noeeprom(HSV_HOST_WINDOWS);
+  }
+}
+
+
+static bool is_mac_mode(void)
+{
+  return current_host_os == OS_MACOS || current_host_os == OS_IOS;
+}
+
+
+static bool process_os_modifier(uint16_t *held_keycode, uint16_t windows_keycode, uint16_t mac_keycode, keyrecord_t *record)
+{
+  if (record->event.pressed)
+  {
+    *held_keycode = is_mac_mode() ? mac_keycode : windows_keycode;
+    register_code16(*held_keycode);
+  }
+  else
+  {
+    unregister_code16(*held_keycode);
+  }
+
+  return false;
+}
 
 
 //RGB Lighting Variables for saving values
@@ -263,6 +308,21 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
 
   switch (keycode)
   {
+    case MKC_OS_GUI:
+    {
+      return process_os_modifier(&left_gui_hold_keycode, KC_LGUI, KC_LALT, record);
+    }
+
+    case MKC_OS_ALT:
+    {
+      return process_os_modifier(&left_alt_hold_keycode, KC_LALT, KC_LGUI, record);
+    }
+
+    case MKC_OS_RALT:
+    {
+      return process_os_modifier(&right_alt_hold_keycode, KC_RALT, KC_RGUI, record);
+    }
+
     //Unmapped Buttons
     case MKC_EMY:
     {
@@ -429,6 +489,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
   return true;
 };
 
+bool process_detected_host_os_user(os_variant_t detected_os)
+{
+  current_host_os = detected_os;
+  apply_host_rgblight();
+  return true;
+}
+
 void post_process_record_user(uint16_t keycode, keyrecord_t *record)
 {
   //HexText Syntax
@@ -583,6 +650,13 @@ const rgblight_segment_t* const PROGMEM UG_Layers[] = RGBLIGHT_LAYERS_LIST(
 void keyboard_post_init_user(void) {
     // Enable the LED layers
     rgblight_layers = UG_Layers;
+    apply_backlight_floor();
+    apply_host_rgblight();
+}
+
+void suspend_wakeup_init_user(void)
+{
+  apply_host_rgblight();
 }
 
 //Checking Layer State and Setting the Lighting Layer accordingly
@@ -613,7 +687,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     KC_TAB,  DE_Q,    DE_W,    DE_E,    DE_R,    DE_T,    DE_Z,    DE_U,    DE_I,    DE_O,    DE_P,    DE_UDIA, DE_PLUS,
     KC_CAPS,   DE_A,    DE_S,    DE_D,    DE_F,    DE_G,    DE_H,    DE_J,    DE_K,    DE_L,    DE_ODIA, DE_ADIA, DE_HASH, KC_ENT,
     KC_LSFT, DE_LABK, DE_Y,    DE_X,    DE_C,    DE_V,    DE_B,    DE_N,    DE_M,    DE_COMM, DE_DOT,  DE_MINS, KC_RSFT,
-    KC_LCTL, KC_LGUI, KC_LALT,                   KC_SPC,                                      KC_RALT, TT(1), TT(2),   KC_RCTL
+    KC_LCTL, MKC_OS_GUI, MKC_OS_ALT,             KC_SPC,                                      MKC_OS_RALT, TT(1), TT(2),   KC_RCTL
   ),
 
   //LAYER 1
@@ -627,7 +701,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
   //LAYER 2
   [_ML] = LAYOUT_60_iso(
-    MKC_EMY,  KC_VOLD,  KC_MPRV,   KC_MPLY,   KC_MNXT,   KC_VOLU,   KC_MUTE,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  RGB_TOG,   MKC_EMY,
+    MKC_EMY,  KC_BRID,  KC_BRIU,   KC_MCTL,   KC_LPAD,   MKC_EMY,   MKC_EMY,  KC_MPRV,  KC_MPLY,  KC_MNXT,  KC_MUTE,  KC_VOLD,  KC_VOLU,   MKC_EMY,
     MKC_EMY,  MKC_EMY,  MKC_EMY,   MKC_EMY,   MKC_EMY,   MKC_EMY,   MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_NWD,  MKC_EMY,
     MKC_EMY,  MKC_EMY,  MKC_SPTFY,   MKC_EMY,   MKC_EMY,   MKC_EMY,   MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_LSD,  MKC_CLD,  MKC_NXD,   MKC_EMY,
     MKC_TNTTXT,  MKC_EMY,  MKC_EMY,   MKC_HEXTXT,   MKC_EMY,   MKC_EMY,   MKC_BINTXT,  MKC_EMY,  MKC_PRTMAP,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,
@@ -637,9 +711,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
   //LAYER 3
   [_AL] = LAYOUT_60_iso(
     MKC_EMY,  MKC_EMY,  MKC_EMY,   MKC_EMY,   MKC_EMY,   MKC_EMY,   MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,   MKC_EMY,
-    MKC_EMY,  RGB_TOG,  RGB_MOD,   RGB_HUI,   RGB_HUD,   RGB_SAI,   RGB_SAD,  RGB_VAI,  RGB_VAD,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,
-    MKC_EMY,  BL_TOGG,  BL_STEP,   BL_INC,   BL_DEC,   MKC_EMY,   MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,   MKC_EMY,
-    MKC_EMY,  MKC_RBW,  MKC_TWNK,   MKC_EMY,   MKC_EMY,   MKC_EMY,   RESET,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,
+    MKC_EMY,  UG_TOGG,  UG_NEXT,   UG_HUEU,   UG_HUED,   UG_SATU,   UG_SATD,  UG_VALU,  UG_VALD,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,
+    MKC_EMY,  BL_TOGG,  BL_STEP,   BL_UP,   BL_DOWN,   MKC_EMY,   MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,   MKC_EMY,
+    MKC_EMY,  MKC_RBW,  MKC_TWNK,   MKC_EMY,   MKC_EMY,   MKC_EMY,   QK_BOOT,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,  MKC_EMY,
     MKC_EMY,  MKC_EMY,  MKC_EMY,                   MKC_EMY,                                     MKC_EMY,  MKC_EMY,  TT(3),   MKC_EMY
   ),
 };

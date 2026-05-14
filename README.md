@@ -2,6 +2,32 @@
 
 Firmware for a DZ60 PCB for a custom build keyboard, ISO layout.
 
+## Build Workflow
+
+Use one command to sync this repository into your QMK checkout and compile it:
+
+```sh
+./scripts/qmk_compile.sh
+```
+
+The script reads `QMK_KEYMAP_DIR` from `.env`. It is currently set to:
+
+```sh
+/Users/philipp/qmk_firmware/keyboards/dz60/keymaps/fantasyflip
+```
+
+When you run `./scripts/qmk_compile.sh`, the workflow:
+
+1. copies `README.md`, `config.h`, `keymap.c`, and `rules.mk` into the configured QMK keymap folder
+2. runs `qmk compile -kb dz60 -km fantasyflip`
+
+The script does not modify the source files in this repository. It only copies them to the target QMK keymap directory before compiling.
+
+Requirements:
+
+1. `qmk` must be installed and available in your shell `PATH`
+2. the `.env` file must point to `/Users/philipp/qmk_firmware/keyboards/dz60/keymaps/fantasyflip` or an equivalent local path for that same keymap
+
 ## Layer Keys
 
 The firmware adds three unlabeled layer keys on the bottom-right of the board:
@@ -11,6 +37,27 @@ The firmware adds three unlabeled layer keys on the bottom-right of the board:
 | `Fn`     | Bottom row, directly right of Right Alt                    | Hold for layer 1 or tap 3 times to lock/unlock it |
 | `Macro`  | Bottom row, directly left of Right Ctrl                    | Hold for layer 2 or tap 3 times to lock/unlock it |
 | `Adjust` | On the `Fn` layer, bottom row, directly left of Right Ctrl | Hold for layer 3 or tap 3 times to lock/unlock it |
+
+## OS Modes
+
+This keymap now uses QMK's built-in host OS detection to choose how the modifiers around `Space` behave.
+
+| Mode    | Physical Windows key sends | Physical Left Alt key sends | Physical Right Alt key sends |
+| ------- | -------------------------- | --------------------------- | ---------------------------- |
+| Windows | `Left GUI`                 | `Left Alt`                  | `Right Alt`                  |
+| Linux   | `Left GUI`                 | `Left Alt`                  | `Right Alt`                  |
+| macOS   | `Left Alt`                 | `Left GUI`                  | `Right GUI` (`Command`)      |
+| iOS     | `Left Alt`                 | `Left GUI`                  | `Right GUI` (`Command`)      |
+
+The DZ60 can use this feature because the current QMK checkout builds it with the LUFA AVR stack, which is one of the transport layers supported by QMK OS detection.
+
+Notes:
+
+- Detection happens shortly after USB startup, not before the firmware boots.
+- Until the host is identified, the keyboard behaves like the Windows/Linux layout.
+- There is no manual toggle anymore; the swap is driven by the detected host OS.
+- The base underglow also follows the detected host OS: Windows/Linux use a dim orange preset, while macOS/iOS use a dim cool blue preset.
+- The switch backlight starts at the lowest illuminated level after boot, but remains adjustable from the `Adjust` layer.
 
 ## Fn Layer
 
@@ -24,20 +71,29 @@ The firmware adds three unlabeled layer keys on the bottom-right of the board:
 
 ## Macro Layer
 
-| Shortcut                   | Feature                                | Notes                                                                             |
-| -------------------------- | -------------------------------------- | --------------------------------------------------------------------------------- |
-| `Macro + 1` to `Macro + 6` | Media controls                         | Volume down, previous track, play/pause, next track, volume up, mute              |
-| `Macro + S`                | Open Spotify                           | Windows-only; uses `Win+R` and the Start Menu shortcut path                       |
-| `Macro + Ü`                | Create a new virtual desktop           | Windows-only                                                                      |
-| `Macro + Ö`                | Switch to the previous virtual desktop | Windows-only                                                                      |
-| `Macro + Ä`                | Close the current virtual desktop      | Windows-only                                                                      |
-| `Macro + #`                | Switch to the next virtual desktop     | Windows-only                                                                      |
-| `Macro + Left Shift`       | Toggle taunt text mode                 | Alternates upper/lower case while typing; tap again to turn it off                |
-| `Macro + X`                | Toggle hex text mode                   | Replaces typed letters and digits with ASCII hex and prefixes each line with `0x` |
-| `Macro + B`                | Type the binary form of `b`            | Sends `01100010`                                                                  |
-| `Macro + M`                | Open the keymap repository link        | Windows-only                                                                      |
-| `Macro + Left GUI`         | Set RGB to rainbow cycle               | Immediate effect                                                                  |
-| `Macro + Space`            | Toggle wide text mode                  | Inserts spaces between letters; typed spaces become double spaces                 |
+| Shortcut             | Feature                                | Notes                                                                             |
+| -------------------- | -------------------------------------- | --------------------------------------------------------------------------------- |
+| `Macro + 1`          | Reduce display brightness              | macOS system control                                                              |
+| `Macro + 2`          | Increase display brightness            | macOS system control                                                              |
+| `Macro + 3`          | Toggle Mission Control                 | macOS system control                                                              |
+| `Macro + 4`          | Toggle Launchpad                       | macOS system control                                                              |
+| `Macro + 7`          | Previous track                         | macOS media control                                                               |
+| `Macro + 8`          | Play/pause                             | macOS media control                                                               |
+| `Macro + 9`          | Next track                             | macOS media control                                                               |
+| `Macro + 0`          | Mute                                   | macOS audio control                                                               |
+| `Macro + ß`          | Volume down                            | macOS audio control                                                               |
+| `Macro + ´`          | Volume up                              | macOS audio control                                                               |
+| `Macro + S`          | Open Spotify                           | Windows-only; uses `Win+R` and the Start Menu shortcut path                       |
+| `Macro + Ü`          | Create a new virtual desktop           | Windows-only                                                                      |
+| `Macro + Ö`          | Switch to the previous virtual desktop | Windows-only                                                                      |
+| `Macro + Ä`          | Close the current virtual desktop      | Windows-only                                                                      |
+| `Macro + #`          | Switch to the next virtual desktop     | Windows-only                                                                      |
+| `Macro + Left Shift` | Toggle taunt text mode                 | Alternates upper/lower case while typing; tap again to turn it off                |
+| `Macro + X`          | Toggle hex text mode                   | Replaces typed letters and digits with ASCII hex and prefixes each line with `0x` |
+| `Macro + B`          | Type the binary form of `b`            | Sends `01100010`                                                                  |
+| `Macro + M`          | Open the keymap repository link        | Windows-only                                                                      |
+| `Macro + Left GUI`   | Set RGB to rainbow cycle               | Immediate effect                                                                  |
+| `Macro + Space`      | Toggle wide text mode                  | Inserts spaces between letters; typed spaces become double spaces                 |
 
 ## Adjust Layer
 
