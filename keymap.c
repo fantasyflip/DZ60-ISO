@@ -162,6 +162,9 @@ static os_variant_t current_host_os = OS_UNSURE;
 static uint16_t left_gui_hold_keycode = KC_LGUI;
 static uint16_t left_alt_hold_keycode = KC_LALT;
 static uint16_t right_alt_hold_keycode = KC_RALT;
+static bool left_alt_is_held = false;
+static bool left_alt_is_registered = false;
+static bool mission_control_chord_active = false;
 
 #define BACKLIGHT_LOWEST_ON_LEVEL 1
 #define HOST_RGB_VALUE 192
@@ -308,6 +311,43 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
 
   switch (keycode)
   {
+    case DE_3:
+    {
+      if (!is_mac_mode())
+      {
+        break;
+      }
+
+      if (record->event.pressed)
+      {
+        if (left_alt_is_held)
+        {
+          mission_control_chord_active = true;
+          if (left_alt_is_registered)
+          {
+            unregister_code16(left_alt_hold_keycode);
+            left_alt_is_registered = false;
+          }
+          tap_code16(KC_MCTL);
+          return false;
+        }
+      }
+      else if (mission_control_chord_active)
+      {
+        mission_control_chord_active = false;
+
+        if (left_alt_is_held && !left_alt_is_registered)
+        {
+          register_code16(left_alt_hold_keycode);
+          left_alt_is_registered = true;
+        }
+
+        return false;
+      }
+
+      break;
+    }
+
     case MKC_OS_GUI:
     {
       return process_os_modifier(&left_gui_hold_keycode, KC_LGUI, KC_LALT, record);
@@ -315,7 +355,25 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
 
     case MKC_OS_ALT:
     {
-      return process_os_modifier(&left_alt_hold_keycode, KC_LALT, KC_LGUI, record);
+      if (record->event.pressed)
+      {
+        left_alt_is_held = true;
+        left_alt_hold_keycode = is_mac_mode() ? KC_LGUI : KC_LALT;
+        register_code16(left_alt_hold_keycode);
+        left_alt_is_registered = true;
+      }
+      else
+      {
+        left_alt_is_held = false;
+
+        if (left_alt_is_registered)
+        {
+          unregister_code16(left_alt_hold_keycode);
+          left_alt_is_registered = false;
+        }
+      }
+
+      return false;
     }
 
     case MKC_OS_RALT:
