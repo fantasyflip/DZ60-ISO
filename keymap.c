@@ -131,6 +131,7 @@ enum custom_keycodes
   MKC_HEXTXT,               // Keycode for writing in Hextext
   MKC_OS_GUI,               // Left GUI position with OS-aware output
   MKC_OS_ALT,               // Left Alt position with OS-aware output
+  MKC_OS_RALT,              // Right Alt position with OS-aware output
   MKC_PRTMAP,               // Opens this FW-Code
   MKC_SPTFY,                // Opens Spotify (REQUIRED: Spotify.lnk in Start-Menu)
   MKC_RBW,                  // Set RGB to Rainbow Cycle
@@ -160,6 +161,7 @@ enum custom_keycodes
 static os_variant_t current_host_os = OS_UNSURE;
 static uint16_t left_gui_hold_keycode = KC_LGUI;
 static uint16_t left_alt_hold_keycode = KC_LALT;
+static uint16_t right_alt_hold_keycode = KC_RALT;
 
 
 static bool is_mac_mode(void)
@@ -284,6 +286,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
     case MKC_OS_ALT:
     {
       return process_os_modifier(&left_alt_hold_keycode, KC_LALT, KC_LGUI, record);
+    }
+
+    case MKC_OS_RALT:
+    {
+      return process_os_modifier(&right_alt_hold_keycode, KC_RALT, KC_RGUI, record);
     }
 
     //Unmapped Buttons
@@ -642,7 +649,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     KC_TAB,  DE_Q,    DE_W,    DE_E,    DE_R,    DE_T,    DE_Z,    DE_U,    DE_I,    DE_O,    DE_P,    DE_UDIA, DE_PLUS,
     KC_CAPS,   DE_A,    DE_S,    DE_D,    DE_F,    DE_G,    DE_H,    DE_J,    DE_K,    DE_L,    DE_ODIA, DE_ADIA, DE_HASH, KC_ENT,
     KC_LSFT, DE_LABK, DE_Y,    DE_X,    DE_C,    DE_V,    DE_B,    DE_N,    DE_M,    DE_COMM, DE_DOT,  DE_MINS, KC_RSFT,
-    KC_LCTL, MKC_OS_GUI, MKC_OS_ALT,             KC_SPC,                                      KC_RALT, TT(1), TT(2),   KC_RCTL
+    KC_LCTL, MKC_OS_GUI, MKC_OS_ALT,             KC_SPC,                                      MKC_OS_RALT, TT(1), TT(2),   KC_RCTL
   ),
 
   //LAYER 1

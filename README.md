@@ -40,14 +40,14 @@ The firmware adds three unlabeled layer keys on the bottom-right of the board:
 
 ## OS Modes
 
-This keymap now uses QMK's built-in host OS detection to choose how the left-side modifier pair between `Left Ctrl` and `Space` behaves.
+This keymap now uses QMK's built-in host OS detection to choose how the modifiers around `Space` behave.
 
-| Mode    | Physical Windows key sends | Physical Left Alt key sends |
-| ------- | -------------------------- | --------------------------- |
-| Windows | `Left GUI`                 | `Left Alt`                  |
-| Linux   | `Left GUI`                 | `Left Alt`                  |
-| macOS   | `Left Alt`                 | `Left GUI`                  |
-| iOS     | `Left Alt`                 | `Left GUI`                  |
+| Mode    | Physical Windows key sends | Physical Left Alt key sends | Physical Right Alt key sends |
+| ------- | -------------------------- | --------------------------- | ---------------------------- |
+| Windows | `Left GUI`                 | `Left Alt`                  | `Right Alt`                  |
+| Linux   | `Left GUI`                 | `Left Alt`                  | `Right Alt`                  |
+| macOS   | `Left Alt`                 | `Left GUI`                  | `Right GUI` (`Command`)      |
+| iOS     | `Left Alt`                 | `Left GUI`                  | `Right GUI` (`Command`)      |
 
 The DZ60 can use this feature because the current QMK checkout builds it with the LUFA AVR stack, which is one of the transport layers supported by QMK OS detection.
 
