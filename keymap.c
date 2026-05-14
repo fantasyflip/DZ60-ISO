@@ -129,6 +129,8 @@ enum custom_keycodes
 {
   MKC_EMY = SAFE_RANGE,     // Keycode for unmapped Buttons
   MKC_HEXTXT,               // Keycode for writing in Hextext
+  MKC_OS_GUI,               // Left GUI position with OS-aware output
+  MKC_OS_ALT,               // Left Alt position with OS-aware output
   MKC_PRTMAP,               // Opens this FW-Code
   MKC_SPTFY,                // Opens Spotify (REQUIRED: Spotify.lnk in Start-Menu)
   MKC_RBW,                  // Set RGB to Rainbow Cycle
@@ -142,6 +144,7 @@ enum custom_keycodes
   MKC_LSD,                  // Last Desktop
   /*
   MKC_TBLFLP,               // (╯°□°）╯︵ ┻━┻)  Emoji
+
   MKC_FU,                   // ┌П┐(◉_◉)┌П┐ Emoji
   MKC_IDC,                  // ¯\_(ツ)_/¯ Emoji
   MKC_TBLRST,               // ┬──┬◡ﾉ(° -°ﾉ)  Emoji
@@ -153,6 +156,32 @@ enum custom_keycodes
   #define UCKC_CLWN X(E_CLWN) //Defining Keycode for Clown Emoji
   */
 };
+
+static os_variant_t current_host_os = OS_UNSURE;
+static uint16_t left_gui_hold_keycode = KC_LGUI;
+static uint16_t left_alt_hold_keycode = KC_LALT;
+
+
+static bool is_mac_mode(void)
+{
+  return current_host_os == OS_MACOS || current_host_os == OS_IOS;
+}
+
+
+static bool process_os_modifier(uint16_t *held_keycode, uint16_t windows_keycode, uint16_t mac_keycode, keyrecord_t *record)
+{
+  if (record->event.pressed)
+  {
+    *held_keycode = is_mac_mode() ? mac_keycode : windows_keycode;
+    register_code16(*held_keycode);
+  }
+  else
+  {
+    unregister_code16(*held_keycode);
+  }
+
+  return false;
+}
 
 
 //RGB Lighting Variables for saving values
@@ -247,6 +276,16 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
 
   switch (keycode)
   {
+    case MKC_OS_GUI:
+    {
+      return process_os_modifier(&left_gui_hold_keycode, KC_LGUI, KC_LALT, record);
+    }
+
+    case MKC_OS_ALT:
+    {
+      return process_os_modifier(&left_alt_hold_keycode, KC_LALT, KC_LGUI, record);
+    }
+
     //Unmapped Buttons
     case MKC_EMY:
     {
@@ -412,6 +451,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
   }
   return true;
 };
+
+bool process_detected_host_os_user(os_variant_t detected_os)
+{
+  current_host_os = detected_os;
+  return true;
+}
 
 void post_process_record_user(uint16_t keycode, keyrecord_t *record)
 {
@@ -597,7 +642,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     KC_TAB,  DE_Q,    DE_W,    DE_E,    DE_R,    DE_T,    DE_Z,    DE_U,    DE_I,    DE_O,    DE_P,    DE_UDIA, DE_PLUS,
     KC_CAPS,   DE_A,    DE_S,    DE_D,    DE_F,    DE_G,    DE_H,    DE_J,    DE_K,    DE_L,    DE_ODIA, DE_ADIA, DE_HASH, KC_ENT,
     KC_LSFT, DE_LABK, DE_Y,    DE_X,    DE_C,    DE_V,    DE_B,    DE_N,    DE_M,    DE_COMM, DE_DOT,  DE_MINS, KC_RSFT,
-    KC_LCTL, KC_LGUI, KC_LALT,                   KC_SPC,                                      KC_RALT, TT(1), TT(2),   KC_RCTL
+    KC_LCTL, MKC_OS_GUI, MKC_OS_ALT,             KC_SPC,                                      KC_RALT, TT(1), TT(2),   KC_RCTL
   ),
 
   //LAYER 1

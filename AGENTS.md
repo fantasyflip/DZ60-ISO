@@ -18,6 +18,7 @@
 ## Validation
 
 - There are no in-repo tests or CI checks.
+- All code or configuration changes in this repository must be validated by running `./scripts/qmk_compile.sh` from the repo root.
 - Validate firmware changes from a real QMK checkout that contains this keymap, using one of the standard QMK commands:
   - `qmk compile -kb dz60 -km <keymap_name>`
   - `make dz60:<keymap_name>`

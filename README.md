@@ -38,6 +38,25 @@ The firmware adds three unlabeled layer keys on the bottom-right of the board:
 | `Macro`  | Bottom row, directly left of Right Ctrl                    | Hold for layer 2 or tap 3 times to lock/unlock it |
 | `Adjust` | On the `Fn` layer, bottom row, directly left of Right Ctrl | Hold for layer 3 or tap 3 times to lock/unlock it |
 
+## OS Modes
+
+This keymap now uses QMK's built-in host OS detection to choose how the left-side modifier pair between `Left Ctrl` and `Space` behaves.
+
+| Mode    | Physical Windows key sends | Physical Left Alt key sends |
+| ------- | -------------------------- | --------------------------- |
+| Windows | `Left GUI`                 | `Left Alt`                  |
+| Linux   | `Left GUI`                 | `Left Alt`                  |
+| macOS   | `Left Alt`                 | `Left GUI`                  |
+| iOS     | `Left Alt`                 | `Left GUI`                  |
+
+The DZ60 can use this feature because the current QMK checkout builds it with the LUFA AVR stack, which is one of the transport layers supported by QMK OS detection.
+
+Notes:
+
+- Detection happens shortly after USB startup, not before the firmware boots.
+- Until the host is identified, the keyboard behaves like the Windows/Linux layout.
+- There is no manual toggle anymore; the swap is driven by the detected host OS.
+
 ## Fn Layer
 
 | Shortcut                                 | Feature                 |
