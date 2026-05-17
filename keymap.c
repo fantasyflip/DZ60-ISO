@@ -13,101 +13,34 @@
 //HexText
 #define STRING_SIZE_HEX 3
 
-//Keycode and Char Array
-struct t_KCnChar
+// Maps a QMK keycode to its QWERTZ character, or '\0' if not a letter/digit.
+static char keycode_to_char(uint16_t kc)
 {
-  uint16_t KC;
-  char c;
-} a_Cast [] = {{KC_0, '0'}, {KC_1, '1'}, {KC_2, '2'}, {KC_3, '3'}, {KC_4, '4'}, {KC_5, '5'}, {KC_6, '6'}, {KC_7, '7'}, {KC_8, '8'}, {KC_J, '9'}, {KC_A, 'a'}, {KC_B, 'b'}, {KC_C, 'c'}, {KC_D, 'd'}, {KC_E, 'e'}, {KC_F, 'f'}, {KC_G, 'g'}, {KC_H, 'h'}, {KC_I, 'i'}, {KC_J, 'j'}, {KC_K, 'k'}, {KC_L, 'l'}, {KC_M, 'm'}, {KC_N, 'n'}, {KC_O, 'o'}, {KC_P, 'p'}, {KC_Q, 'q'}, {KC_R, 'r'}, {KC_S, 's'}, {KC_T, 't'}, {KC_U, 'u'}, {KC_V, 'v'}, {KC_W, 'w'}, {KC_X, 'x'}, {KC_Y, 'z'}, {KC_Z, 'y'}};
-
-//Saving Array
-char hex[STRING_SIZE_HEX];
-
-//Function to Convert Char Value to Hex Value
-char *Char2Hex (char c)
-{
-  int i_ASCII = c;
-
-  char *p_hex = malloc(sizeof *p_hex);
-
-  sprintf(hex, "%x", i_ASCII);
-
-  p_hex = &hex[0];
-
-  return p_hex;
-};
-
-//Function for Printing the Hex-Value
-void prHex (char c)
-{
-  char *p = Char2Hex(c);
-
-  for (int i = 0; i < STRING_SIZE_HEX; i++)
+  if (kc >= KC_A && kc <= KC_Z)
   {
-    send_char(p[i]);
+    char c = 'a' + (char)(kc - KC_A);
+    if (c == 'y') return 'z';
+    if (c == 'z') return 'y';
+    return c;
   }
-};
+  if (kc >= KC_1 && kc <= KC_9) return '1' + (char)(kc - KC_1);
+  if (kc == KC_0) return '0';
+  return '\0';
+}
 
-//BinText
-
-#define STRING_SIZE_BIN 9
-
-//Hex Value and Binary Value Array
-struct t_HEXnBIN
+// Sends the two-nibble hex representation of c followed by a null byte.
+static void prHex(char c)
 {
-  char hex;
-  int bin;
-} a_BinCast [] = {{'0', 0000}, {'1', 0001}, {'2', 0010}, {'3', 0011}, {'4', 0100}, {'5', 0101}, {'6', 0110}, {'7', 0111}, {'8', 1000}, {'9', 1001}, {'a', 1010}, {'b', 1011}, {'c', 1100}, {'d', 1101}, {'e', 1110}, {'f', 1111}};
-
-char bin [STRING_SIZE_BIN];
-
-//Function to Convert Hex Value to Binary Value
-char *Hex2Bin (char *p_hex)
-{
-  char *p_bin = malloc(sizeof *p_bin);
-  long int binVal = 12345678;
-  int BinDig1 = 2;
-  int BinDig2 = 3;
-
-  for (int i = 0; i < 2; i++)
-  {
-    char Hex = p_hex[i];
-    for (int i = 0; i < 16; i++)
-    {
-      if (Hex == a_BinCast[i].hex)
-      {
-        if (i == 0)
-        {
-          BinDig1 = a_BinCast[i].bin;
-        }
-        if (i == 1)
-        {
-          BinDig2 = a_BinCast[i].bin;
-        }
-        i = 16;
-      }
-    }
-
-  }
-
-  binVal = (BinDig1 * 10000) + BinDig2;
-
-  sprintf(bin,"%ld",binVal);
-
-  p_bin = &bin[0];
-
-  return p_bin;
-};
-
-//Function for printing the Binary Value
-void prBin (char c)
-{
-  char *p = Hex2Bin(Char2Hex(c));
-  for(int i = 0; i < STRING_SIZE_BIN; i++)
-  {
-    send_char(p[i]);
-  }
-};
+  uint8_t v = (uint8_t)c;
+  uint8_t hi = v >> 4;
+  uint8_t lo = v & 0xF;
+  char buf[STRING_SIZE_HEX] = {
+    hi < 10 ? '0' + hi : 'a' + hi - 10,
+    lo < 10 ? '0' + lo : 'a' + lo - 10,
+    '\0'
+  };
+  for (int i = 0; i < STRING_SIZE_HEX; i++) send_char(buf[i]);
+}
 
 //----------------------------
 //------- LAYER-DEFINE -------
@@ -166,6 +99,9 @@ static bool left_alt_is_held = false; // Tracks physical hold state of MKC_OS_AL
 static bool left_alt_is_pending = false; // Delays Command registration on macOS until next non-chord key.
 static bool left_alt_is_registered = false; // Tracks whether left_alt_hold_keycode is currently registered.
 static bool mission_control_chord_active = false; // Tracks an active MKC_OS_ALT + DE_3 Mission Control chord.
+static bool right_alt_is_held = false; // Tracks physical hold state of MKC_OS_RALT.
+static bool right_alt_is_pending = false; // Delays RGUI registration on macOS until next key is known.
+static bool right_alt_is_registered = false; // Tracks whether right_alt_hold_keycode is currently registered.
 
 #define BACKLIGHT_LOWEST_ON_LEVEL 1
 #define HOST_RGB_VALUE 192
@@ -274,6 +210,20 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
     left_alt_is_pending = false; // Consume pending state after the first post-press key.
   }
 
+  // Resolve delayed MKC_OS_RALT registration on macOS.
+  // Special AltGr-equivalent keys skip RGUI registration and are handled in the switch below.
+  if (is_mac_mode() && right_alt_is_pending && record->event.pressed && keycode != MKC_OS_RALT)
+  {
+    bool is_ralt_special = (keycode == DE_7 || keycode == DE_8 || keycode == DE_9 ||
+                            keycode == DE_0 || keycode == DE_SS || keycode == DE_LABK);
+    if (!is_ralt_special)
+    {
+      register_code16(right_alt_hold_keycode); // Register RGUI for normal combos.
+      right_alt_is_registered = true;
+    }
+    right_alt_is_pending = false;
+  }
+
   //Taunttext Bool
   static bool b_taunttext = false;
 
@@ -345,6 +295,39 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
 
   switch (keycode)
   {
+    // macOS AltGr-equivalent combos: intercept when MKC_OS_RALT is held on macOS
+    // and send the macOS German Option+key equivalents for the Windows AltGr characters.
+    case DE_7:
+    case DE_8:
+    case DE_9:
+    case DE_0:
+    case DE_SS:
+    case DE_LABK:
+    {
+      if (is_mac_mode() && right_alt_is_held)
+      {
+        if (record->event.pressed)
+        {
+          if (right_alt_is_registered)
+          {
+            unregister_code16(right_alt_hold_keycode);
+            right_alt_is_registered = false;
+          }
+          switch (keycode)
+          {
+            case DE_7:    tap_code16(LALT(KC_8));          break; // { (macOS: Opt+8)
+            case DE_8:    tap_code16(LALT(KC_5));          break; // [ (macOS: Opt+5)
+            case DE_9:    tap_code16(LALT(KC_6));          break; // ] (macOS: Opt+6)
+            case DE_0:    tap_code16(LALT(KC_9));          break; // } (macOS: Opt+9)
+            case DE_SS:   tap_code16(LSFT(LALT(KC_7)));   break; // \ (macOS: Shift+Opt+7)
+            case DE_LABK: tap_code16(LALT(KC_7));          break; // | (macOS: Opt+7)
+          }
+        }
+        return false; // Suppress both press and release for these special combos.
+      }
+      break;
+    }
+
     case DE_3:
     {
       // Only intercept DE_3 in macOS/iOS mode for the custom Mission Control chord.
@@ -429,7 +412,34 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
 
     case MKC_OS_RALT:
     {
-      return process_os_modifier(&right_alt_hold_keycode, KC_RALT, KC_RGUI, record);
+      if (record->event.pressed)
+      {
+        right_alt_is_held = true;
+        right_alt_hold_keycode = is_mac_mode() ? KC_RGUI : KC_RALT;
+
+        if (is_mac_mode())
+        {
+          right_alt_is_pending = true; // Defer RGUI registration to check for special combos.
+          right_alt_is_registered = false;
+        }
+        else
+        {
+          register_code16(right_alt_hold_keycode);
+          right_alt_is_registered = true;
+        }
+      }
+      else
+      {
+        right_alt_is_held = false;
+        right_alt_is_pending = false;
+
+        if (right_alt_is_registered)
+        {
+          unregister_code16(right_alt_hold_keycode);
+          right_alt_is_registered = false;
+        }
+      }
+      return false;
     }
 
     //Unmapped Buttons
@@ -546,13 +556,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record)
     //Activating BinText
     case MKC_BINTXT:
     {
-      if (record->event.pressed)
-      {
-        //binText = !binText;
-
-        prBin('b');
-      }
-      return true;
+      return false;
     }
 
     //Create New Desktop
@@ -622,22 +626,20 @@ void post_process_record_user(uint16_t keycode, keyrecord_t *record)
         {
           unregister_code(KC_LSFT);
           unregister_code(KC_RSFT);
-          for (int i = 0; i < 36; i++)
+          char ch = keycode_to_char(keycode);
+          if (ch)
           {
-            if (a_Cast[i].KC == keycode)
+            send_char('\b');
+            t_hextext.LineCounter = t_hextext.LineCounter + 1;
+            if (t_hextext.first)
             {
-              send_char('\b');
-              t_hextext.LineCounter = t_hextext.LineCounter + 1;
-              if (t_hextext.first)
-              {
-                SEND_STRING("0x");
-                t_hextext.first = false;
-                t_hextext.LineCounter = 1;
-              }
-              prHex(a_Cast[i].c);
+              SEND_STRING("0x");
+              t_hextext.first = false;
+              t_hextext.LineCounter = 1;
             }
+            prHex(ch);
           }
-         break;
+          break;
         }
         case KC_SPC:
         {
@@ -675,27 +677,6 @@ void post_process_record_user(uint16_t keycode, keyrecord_t *record)
       }
     }
   }
-
-/*
-  if (binText)
-  {
-    if (record->event.pressed)
-    {
-
-    }
-    else
-    {
-      switch(keycode)
-      {
-        case KC_A...KC_0:
-        {
-
-        }
-      }
-    }
-
-  }
-  */
 
   //Processing Macros
   switch(keycode)
